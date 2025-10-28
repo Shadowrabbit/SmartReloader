@@ -22,7 +22,7 @@ public class GunStateManager(ItemAgent_Gun gun)
         // 检查枪械状态
         if (!IsValidGunState())
         {
-            return false;
+            return true;
         }
 
         // 重置连发计数器
@@ -32,24 +32,39 @@ public class GunStateManager(ItemAgent_Gun gun)
         // 自动选择子弹类型
         if (!AutoSelectBulletType())
         {
-            return false;
+            return true;
         }
 
         // 检查是否已满
         if (IsAlreadyFull())
         {
-            return false;
+            return true;
         }
 
-        // 检查子弹数量
-        if (!HasEnoughBullets())
+        if (gun.GunItemSetting.PreferdBulletsToLoad != null)
         {
-            return false;
+            return true;
         }
 
-        // 开始装弹
-        StartReloadProcess();
-        return true;
+        // 背包内目标类型子弹数量
+        var inventoryCount = gun.GunItemSetting.GetBulletCountofTypeInInventory(
+            gun.GunItemSetting.TargetBulletID,
+            gun.Holder.CharacterItem.Inventory
+        );
+
+        switch (inventoryCount)
+        {
+            // 情况1：枪与背包都无子弹 -> 返回false，后续走智能装填或提示
+            case <= 0 when gun.BulletCount <= 0:
+                return false;
+            // 情况2：背包里仍有该类型子弹 -> 返回true，继续原始装填，不触发智能装填
+            case > 0:
+                StartReloadProcess();
+                return true;
+            default:
+                // 其余情况（如枪内有子弹但背包没有该类型）-> 返回false，允许后续智能装填介入
+                return true;
+        }
     }
 
     /// <summary>
@@ -119,12 +134,26 @@ public class GunStateManager(ItemAgent_Gun gun)
             return true;
         }
 
-        var bulletCount = gun.GunItemSetting.GetBulletCountofTypeInInventory(
+        // 背包内目标类型子弹数量
+        var inventoryCount = gun.GunItemSetting.GetBulletCountofTypeInInventory(
             gun.GunItemSetting.TargetBulletID,
             gun.Holder.CharacterItem.Inventory
         );
 
-        return bulletCount > 0;
+        // 情况1：枪与背包都无子弹 -> 返回false，后续走智能装填或提示
+        if (inventoryCount <= 0 && gun.BulletCount <= 0)
+        {
+            return true;
+        }
+
+        // 情况2：背包里仍有该类型子弹 -> 返回true，继续原始装填，不触发智能装填
+        if (inventoryCount > 0)
+        {
+            return true;
+        }
+
+        // 其余情况（如枪内有子弹但背包没有该类型）-> 返回false，允许后续智能装填介入
+        return false;
     }
 
     /// <summary>

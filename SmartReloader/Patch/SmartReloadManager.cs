@@ -63,10 +63,9 @@ public class SmartReloadManager(ItemAgent_Gun gun)
         // 设置偏好子弹并重新尝试装弹
         gun.GunItemSetting.PreferdBulletsToLoad = compatibleBullet;
         var success = _stateManager.TryOriginalReload();
-
         if (success)
         {
-            Debug.Log($"Auto reload successful: {compatibleBullet.DisplayName}");
+            Debug.Log($"[SmartReloader]Auto reload successful: {compatibleBullet.DisplayName}");
         }
 
         return success;
